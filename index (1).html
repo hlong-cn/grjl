@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人网站</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        dark: '#1F2937',
+                        light: '#F3F4F6',
+                        accent: '#8B5CF6'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .bg-glass {
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
+            .transition-all-300 {
+                transition: all 0.3s ease;
+            }
+        }
+    </style>
+    <style>
+        /* 自定义样式 */
+        .editable {
+            outline: none;
+            min-height: 20px;
+        }
+        .editable:focus {
+            border-bottom: 2px solid #3B82F6;
+        }
+        .draggable {
+            cursor: grab;
+        }
+        .draggable:active {
+            cursor: grabbing;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .weather-icon {
+            font-size: 2rem;
+            margin-right: 10px;
+        }
+        .visit-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .visit-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        /* 深色模式 */
+        .dark-mode {
+            background-color: #1F2937;
+            color: #F3F4F6;
+        }
+        .dark-mode .bg-white {
+            background-color: #374151;
+        }
+        .dark-mode .text-gray-800 {
+            color: #F3F4F6;
+        }
+        .dark-mode .border {
+            border-color: #4B5563;
+        }
+        .dark-mode .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+        /* 加载动画 */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #3B82F6;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 密码输入样式 */
+        .password-input {
+            position: relative;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 transition-all-300">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md fixed w-full z-50 transition-all-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <img src="https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/43e5f643acc34a2caa7ab97701c9e841~tplv-a9rns2rl98-image.image?rcl=2025120621000918CB0396A08EDB4FEB3B&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767618068&x-signature=%2B8VBgM0EhWVoP4wOLuvCzlFkItY%3D" alt="Logo" class="h-10 w-10">
+                <span class="text-xl font-bold text-gray-800 editable" id="site-title">个人网站</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#home" class="text-gray-700 hover:text-primary transition-all-300">首页</a>
+                <a href="#resume" class="text-gray-700 hover:text-primary transition-all-300">简历</a>
+                <a href="#portfolio" class="text-gray-700 hover:text-primary transition-all-300">作品</a>
+                <a href="#contact" class="text-gray-700 hover:text-primary transition-all-300">联系我</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="weather-btn" class="flex items-center text-gray-700 hover:text-primary transition-all-300">
+                    <i class="fa fa-cloud mr-1"></i>
+                    <span id="weather-text">加载中...</span>
+                </button>
+                <button id="theme-toggle" class="text-gray-700 hover:text-primary transition-all-300">
+                    <i class="fa fa-moon-o"></i>
+                </button>
+                <button id="login-btn" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300">
+                    <i class="fa fa-lock mr-1"></i> 登录
+                </button>
+                <button id="mobile-menu-btn" class="md:hidden text-gray-700">
+                    <i class="fa fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t">
+            <div class="container mx-auto px-4 py-2 flex flex-col space-y-2">
+                <a href="#home" class="py-2 text-gray-700 hover:text-primary transition-all-300">首页</a>
+                <a href="#resume" class="py-2 text-gray-700 hover:text-primary transition-all-300">简历</a>
+                <a href="#portfolio" class="py-2 text-gray-700 hover:text-primary transition-all-300">作品</a>
+                <a href="#contact" class="py-2 text-gray-700 hover:text-primary transition-all-300">联系我</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 实时信息栏 -->
+    <div class="bg-glass fixed bottom-4 right-4 p-3 rounded-lg shadow-lg z-40 flex items-center space-x-4">
+        <div class="flex items-center">
+            <i class="fa fa-clock-o text-primary mr-2"></i>
+            <span id="current-time">加载中...</span>
+        </div>
+        <div class="flex items-center">
+            <i class="fa fa-map-marker text-primary mr-2"></i>
+            <span id="current-location">加载中...</span>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 pt-20 pb-10">
+        <!-- 首页/个人介绍 -->
+        <section id="home" class="min-h-screen flex flex-col justify-center py-10 animate-fade-in">
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="order-2 md:order-1">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-4 text-gray-800 editable" id="home-title">你好，我是<span class="text-primary">开发者</span></h1>
+                    <p class="text-xl text-gray-600 mb-6 editable" id="home-subtitle">欢迎来到我的个人网站，这里展示了我的简历、作品和联系方式。</p>
+                    <div class="flex flex-wrap gap-4 mb-8">
+                        <button id="edit-mode-btn" class="bg-primary text-white px-6 py-3 rounded-md hover:bg-blue-600 transition-all-300 hidden">
+                            <i class="fa fa-pencil mr-2"></i> 编辑模式
+                        </button>
+                        <a href="#resume" class="bg-gray-200 text-gray-800 px-6 py-3 rounded-md hover:bg-gray-300 transition-all-300">
+                            <i class="fa fa-file-text-o mr-2"></i> 查看简历
+                        </a>
+                        <a href="#portfolio" class="bg-secondary text-white px-6 py-3 rounded-md hover:bg-green-600 transition-all-300">
+                            <i class="fa fa-briefcase mr-2"></i> 浏览作品
+                        </a>
+                    </div>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-600 hover:text-primary text-2xl transition-all-300">
+                            <i class="fa fa-github"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 hover:text-primary text-2xl transition-all-300">
+                            <i class="fa fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 hover:text-primary text-2xl transition-all-300">
+                            <i class="fa fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 hover:text-primary text-2xl transition-all-300">
+                            <i class="fa fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="order-1 md:order-2 flex justify-center">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-primary rounded-full blur-md opacity-20 transform -translate-x-4 translate-y-4"></div>
+                        <img src="https://p11-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/971145956090183702~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578043&x-signature=7iBWglFQrzvh%2FNYmwAEEbY8b0tg%3D" alt="个人头像" class="w-64 h-64 object-cover rounded-full border-4 border-white shadow-lg relative z-10">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 简历部分 -->
+        <section id="resume" class="py-10 animate-fade-in">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2 editable" id="resume-title">个人简历</h2>
+                <p class="text-gray-600 editable" id="resume-subtitle">我的教育背景、工作经历和专业技能</p>
+            </div>
+
+            <!-- 简历内容 - 可编辑区域 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <!-- 个人信息 -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fa fa-user-circle text-primary mr-2"></i>
+                        <span class="editable" id="resume-personal-title">个人信息</span>
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600"><strong>姓名：</strong><span class="editable" id="resume-name">张三</span></p>
+                            <p class="text-gray-600"><strong>邮箱：</strong><span class="editable" id="resume-email">zhangsan@example.com</span></p>
+                            <p class="text-gray-600"><strong>电话：</strong><span class="editable" id="resume-phone">13800138000</span></p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600"><strong>地址：</strong><span class="editable" id="resume-address">北京市朝阳区</span></p>
+                            <p class="text-gray-600"><strong>职位：</strong><span class="editable" id="resume-position">前端开发工程师</span></p>
+                            <p class="text-gray-600"><strong>个人网站：</strong><a href="#" class="text-primary hover:underline editable" id="resume-website">www.zhangsan.com</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 教育背景 -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fa fa-graduation-cap text-primary mr-2"></i>
+                        <span class="editable" id="resume-education-title">教育背景</span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-primary pl-4 py-2">
+                            <div class="flex justify-between">
+                                <h4 class="font-bold text-gray-800 editable" id="resume-education-school-1">北京大学</h4>
+                                <span class="text-gray-500 editable" id="resume-education-date-1">2015年9月 - 2019年6月</span>
+                            </div>
+                            <p class="text-gray-600 editable" id="resume-education-major-1">计算机科学与技术 | 本科</p>
+                            <p class="text-gray-600 editable" id="resume-education-desc-1">主修课程：数据结构、算法分析、计算机网络、操作系统、数据库系统等。GPA：3.8/4.0</p>
+                        </div>
+                        <div class="border-l-4 border-primary pl-4 py-2">
+                            <div class="flex justify-between">
+                                <h4 class="font-bold text-gray-800 editable" id="resume-education-school-2">清华大学</h4>
+                                <span class="text-gray-500 editable" id="resume-education-date-2">2019年9月 - 2022年6月</span>
+                            </div>
+                            <p class="text-gray-600 editable" id="resume-education-major-2">计算机科学与技术 | 硕士</p>
+                            <p class="text-gray-600 editable" id="resume-education-desc-2">研究方向：Web前端开发、人机交互。发表论文3篇，参与国家级科研项目2项。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工作经历 -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fa fa-briefcase text-primary mr-2"></i>
+                        <span class="editable" id="resume-experience-title">工作经历</span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-primary pl-4 py-2">
+                            <div class="flex justify-between">
+                                <h4 class="font-bold text-gray-800 editable" id="resume-experience-company-1">ABC科技有限公司</h4>
+                                <span class="text-gray-500 editable" id="resume-experience-date-1">2022年7月 - 至今</span>
+                            </div>
+                            <p class="text-gray-600 editable" id="resume-experience-position-1">高级前端开发工程师</p>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                <li class="editable" id="resume-experience-desc-1-1">负责公司核心产品的前端架构设计和开发</li>
+                                <li class="editable" id="resume-experience-desc-1-2">优化前端性能，提升用户体验，页面加载速度提升40%</li>
+                                <li class="editable" id="resume-experience-desc-1-3">带领5人前端团队，制定开发规范，进行代码审查</li>
+                            </ul>
+                        </div>
+                        <div class="border-l-4 border-primary pl-4 py-2">
+                            <div class="flex justify-between">
+                                <h4 class="font-bold text-gray-800 editable" id="resume-experience-company-2">XYZ互联网公司</h4>
+                                <span class="text-gray-500 editable" id="resume-experience-date-2">2020年7月 - 2022年6月</span>
+                            </div>
+                            <p class="text-gray-600 editable" id="resume-experience-position-2">前端开发工程师</p>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                <li class="editable" id="resume-experience-desc-2-1">参与电商平台前端开发，负责商品展示、购物车、支付流程等模块</li>
+                                <li class="editable" id="resume-experience-desc-2-2">使用React开发移动端H5应用，日活用户超过10万</li>
+                                <li class="editable" id="resume-experience-desc-2-3">与后端团队协作，优化API接口，提升系统稳定性</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 专业技能 -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fa fa-code text-primary mr-2"></i>
+                        <span class="editable" id="resume-skills-title">专业技能</span>
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="mb-3">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-700 editable" id="resume-skill-1-name">HTML/CSS/JavaScript</span>
+                                    <span class="text-gray-700 editable" id="resume-skill-1-level">95%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full editable" id="resume-skill-1-bar" style="width: 95%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-700 editable" id="resume-skill-2-name">React/Vue</span>
+                                    <span class="text-gray-700 editable" id="resume-skill-2-level">90%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full editable" id="resume-skill-2-bar" style="width: 90%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-700 editable" id="resume-skill-3-name">TypeScript</span>
+                                    <span class="text-gray-700 editable" id="resume-skill-3-level">85%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full editable" id="resume-skill-3-bar" style="width: 85%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="mb-3">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-700 editable" id="resume-skill-4-name">Node.js</span>
+                                    <span class="text-gray-700 editable" id="resume-skill-4-level">80%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full editable" id="resume-skill-4-bar" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-700 editable" id="resume-skill-5-name">UI/UX设计</span>
+                                    <span class="text-gray-700 editable" id="resume-skill-5-level">75%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full editable" id="resume-skill-5-bar" style="width: 75%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-700 editable" id="resume-skill-6-name">后端开发</span>
+                                    <span class="text-gray-700 editable" id="resume-skill-6-level">70%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full editable" id="resume-skill-6-bar" style="width: 70%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 作品展示 -->
+        <section id="portfolio" class="py-10 animate-fade-in">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2 editable" id="portfolio-title">作品展示</h2>
+                <p class="text-gray-600 editable" id="portfolio-subtitle">我的项目作品和设计案例</p>
+            </div>
+
+            <!-- 作品筛选 -->
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <button class="portfolio-filter-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-filter="all">全部</button>
+                <button class="portfolio-filter-btn bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-all-300" data-filter="web">网站开发</button>
+                <button class="portfolio-filter-btn bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-all-300" data-filter="app">应用开发</button>
+                <button class="portfolio-filter-btn bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-all-300" data-filter="design">UI/UX设计</button>
+            </div>
+
+            <!-- 作品网格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 作品项 1 -->
+                <div class="portfolio-item bg-white rounded-lg shadow-lg overflow-hidden transition-all-300 hover:shadow-xl" data-category="web">
+                    <div class="relative">
+                        <img src="https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1845406941648781321~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=FoROs7oTEVx2bajK9b%2B4XNX8Cw8%3D" alt="电商网站设计" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-all-300 flex items-center justify-center">
+                            <button class="view-project-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-id="1">查看详情</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 editable" id="portfolio-item-1-title">电商网站设计</h3>
+                        <p class="text-gray-600 mb-4 editable" id="portfolio-item-1-desc">现代化电商平台，支持商品展示、购物车、支付流程等功能。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">React</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Node.js</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">MongoDB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作品项 2 -->
+                <div class="portfolio-item bg-white rounded-lg shadow-lg overflow-hidden transition-all-300 hover:shadow-xl" data-category="app">
+                    <div class="relative">
+                        <img src="https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1934441828370743303~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=HlFZOLMXreSGMGmz2FMT78DET0s%3D" alt="移动应用界面" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-all-300 flex items-center justify-center">
+                            <button class="view-project-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-id="2">查看详情</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 editable" id="portfolio-item-2-title">移动应用界面</h3>
+                        <p class="text-gray-600 mb-4 editable" id="portfolio-item-2-desc">简约现代的移动应用界面设计，注重用户体验和交互设计。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Figma</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">UI/UX</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">移动端</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作品项 3 -->
+                <div class="portfolio-item bg-white rounded-lg shadow-lg overflow-hidden transition-all-300 hover:shadow-xl" data-category="design">
+                    <div class="relative">
+                        <img src="https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1615221321937059851~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=xKwosgDB6LQfeu80b4NkMdAFm0o%3D" alt="品牌视觉设计" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-all-300 flex items-center justify-center">
+                            <button class="view-project-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-id="3">查看详情</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 editable" id="portfolio-item-3-title">品牌视觉设计</h3>
+                        <p class="text-gray-600 mb-4 editable" id="portfolio-item-3-desc">企业品牌视觉识别系统设计，包括标志、色彩、排版等元素。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Photoshop</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Illustrator</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">品牌设计</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作品项 4 -->
+                <div class="portfolio-item bg-white rounded-lg shadow-lg overflow-hidden transition-all-300 hover:shadow-xl" data-category="web">
+                    <div class="relative">
+                        <img src="https://p3-doubao-search-sign.byteimg.com/labis/45ad0d580e7ab264541844217345e52d~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=FxN9yY88i2FWdQimPIxd6HLgoeI%3D" alt="个人博客网站" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-all-300 flex items-center justify-center">
+                            <button class="view-project-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-id="4">查看详情</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 editable" id="portfolio-item-4-title">个人博客网站</h3>
+                        <p class="text-gray-600 mb-4 editable" id="portfolio-item-4-desc">响应式个人博客网站，支持文章发布、评论互动等功能。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Vue.js</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Express</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">MySQL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作品项 5 -->
+                <div class="portfolio-item bg-white rounded-lg shadow-lg overflow-hidden transition-all-300 hover:shadow-xl" data-category="app">
+                    <div class="relative">
+                        <img src="https://p3-doubao-search-sign.byteimg.com/labis/f7d5fdc513c0e50cb0523dcc1be34851~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=hOV3b2hlJ9kAr5IiaLNjE%2BNGpmk%3D" alt="音乐播放器应用" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-all-300 flex items-center justify-center">
+                            <button class="view-project-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-id="5">查看详情</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 editable" id="portfolio-item-5-title">音乐播放器应用</h3>
+                        <p class="text-gray-600 mb-4 editable" id="portfolio-item-5-desc">功能丰富的音乐播放器应用，支持在线播放、歌单管理等功能。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">React Native</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Redux</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">音频API</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作品项 6 -->
+                <div class="portfolio-item bg-white rounded-lg shadow-lg overflow-hidden transition-all-300 hover:shadow-xl" data-category="design">
+                    <div class="relative">
+                        <img src="https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1815803570250448964~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=0ah6fpkxwgXJpG2kXMM9s6MX8AM%3D" alt="数据可视化设计" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-all-300 flex items-center justify-center">
+                            <button class="view-project-btn bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300" data-id="6">查看详情</button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 editable" id="portfolio-item-6-title">数据可视化设计</h3>
+                        <p class="text-gray-600 mb-4 editable" id="portfolio-item-6-desc">复杂数据的可视化设计，包括图表、仪表盘等元素。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">D3.js</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Chart.js</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">数据可视化</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 添加作品按钮（仅编辑模式可见） -->
+            <div class="text-center mt-8">
+                <button id="add-portfolio-btn" class="bg-secondary text-white px-6 py-3 rounded-md hover:bg-green-600 transition-all-300 hidden">
+                    <i class="fa fa-plus mr-2"></i> 添加作品
+                </button>
+            </div>
+        </section>
+
+        <!-- 联系我 -->
+        <section id="contact" class="py-10 animate-fade-in">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2 editable" id="contact-title">联系我</h2>
+                <p class="text-gray-600 editable" id="contact-subtitle">如有合作意向或其他问题，欢迎联系我</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- 联系信息 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 editable" id="contact-info-title">联系方式</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-primary rounded-full p-3 text-white mr-4">
+                                <i class="fa fa-envelope"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 editable" id="contact-email-title">邮箱</h4>
+                                <p class="text-gray-600 editable" id="contact-email">zhangsan@example.com</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-primary rounded-full p-3 text-white mr-4">
+                                <i class="fa fa-phone"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 editable" id="contact-phone-title">电话</h4>
+                                <p class="text-gray-600 editable" id="contact-phone">13800138000</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-primary rounded-full p-3 text-white mr-4">
+                                <i class="fa fa-map-marker"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 editable" id="contact-address-title">地址</h4>
+                                <p class="text-gray-600 editable" id="contact-address">北京市朝阳区某某街道123号</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-primary rounded-full p-3 text-white mr-4">
+                                <i class="fa fa-globe"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 editable" id="contact-website-title">网站</h4>
+                                <p class="text-gray-600"><a href="#" class="text-primary hover:underline editable" id="contact-website">www.zhangsan.com</a></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 editable" id="contact-social-title">社交媒体</h3>
+                        <div class="flex space-x-4">
+                            <a href="#" class="bg-gray-200 hover:bg-primary hover:text-white text-gray-600 w-10 h-10 rounded-full flex items-center justify-center transition-all-300">
+                                <i class="fa fa-github"></i>
+                            </a>
+                            <a href="#" class="bg-gray-200 hover:bg-primary hover:text-white text-gray-600 w-10 h-10 rounded-full flex items-center justify-center transition-all-300">
+                                <i class="fa fa-linkedin"></i>
+                            </a>
+                            <a href="#" class="bg-gray-200 hover:bg-primary hover:text-white text-gray-600 w-10 h-10 rounded-full flex items-center justify-center transition-all-300">
+                                <i class="fa fa-twitter"></i>
+                            </a>
+                            <a href="#" class="bg-gray-200 hover:bg-primary hover:text-white text-gray-600 w-10 h-10 rounded-full flex items-center justify-center transition-all-300">
+                                <i class="fa fa-weixin"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 联系表单 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 editable" id="contact-form-title">发送消息</h3>
+                    <form id="contact-form">
+                        <div class="mb-4">
+                            <label for="name" class="block text-gray-700 mb-2 editable" id="contact-form-name-label">姓名</label>
+                            <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="mb-4">
+                            <label for="email" class="block text-gray-700 mb-2 editable" id="contact-form-email-label">邮箱</label>
+                            <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="mb-4">
+                            <label for="subject" class="block text-gray-700 mb-2 editable" id="contact-form-subject-label">主题</label>
+                            <input type="text" id="subject" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="mb-6">
+                            <label for="message" class="block text-gray-700 mb-2 editable" id="contact-form-message-label">消息</label>
+                            <textarea id="message" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-3 rounded-md hover:bg-blue-600 transition-all-300">
+                            <i class="fa fa-paper-plane mr-2"></i> 发送消息
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-800 text-white py-10">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4 editable" id="footer-about-title">关于我</h3>
+                    <p class="text-gray-400 editable" id="footer-about-text">我是一名前端开发工程师，热爱创造美观、实用的网站和应用。拥有多年的开发经验，擅长HTML、CSS、JavaScript等前端技术。</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4 editable" id="footer-links-title">快速链接</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-gray-400 hover:text-white transition-all-300">首页</a></li>
+                        <li><a href="#resume" class="text-gray-400 hover:text-white transition-all-300">简历</a></li>
+                        <li><a href="#portfolio" class="text-gray-400 hover:text-white transition-all-300">作品</a></li>
+                        <li><a href="#contact" class="text-gray-400 hover:text-white transition-all-300">联系我</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4 editable" id="footer-contact-title">联系我</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center">
+                            <i class="fa fa-envelope mr-2"></i>
+                            <span class="text-gray-400 editable" id="footer-email">zhangsan@example.com</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-phone mr-2"></i>
+                            <span class="text-gray-400 editable" id="footer-phone">13800138000</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-map-marker mr-2"></i>
+                            <span class="text-gray-400 editable" id="footer-address">北京市朝阳区</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 mb-4 md:mb-0 editable" id="footer-copyright">© 2025 个人网站. 保留所有权利.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-all-300">
+                        <i class="fa fa-github"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-all-300">
+                        <i class="fa fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-all-300">
+                        <i class="fa fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-all-300">
+                        <i class="fa fa-weixin"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 模态框 -->
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content bg-white rounded-lg shadow-xl animate-slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">登录</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-700 mb-2">用户名</label>
+                    <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div class="mb-6 password-input">
+                    <label for="password" class="block text-gray-700 mb-2">密码</label>
+                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    <span class="password-toggle text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                </div>
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" class="mr-2">
+                        <label for="remember" class="text-gray-700">记住我</label>
+                    </div>
+                    <a href="#" class="text-primary hover:underline">忘记密码？</a>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-md hover:bg-blue-600 transition-all-300">
+                    登录
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 项目详情模态框 -->
+    <div id="project-modal" class="modal">
+        <div class="modal-content bg-white rounded-lg shadow-xl animate-slide-up max-w-4xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800" id="project-modal-title">项目详情</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="project-modal-content">
+                <!-- 项目详情内容将通过JavaScript动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加作品模态框 -->
+    <div id="add-portfolio-modal" class="modal">
+        <div class="modal-content bg-white rounded-lg shadow-xl animate-slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">添加作品</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="add-portfolio-form">
+                <div class="mb-4">
+                    <label for="portfolio-title-input" class="block text-gray-700 mb-2">标题</label>
+                    <input type="text" id="portfolio-title-input" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div class="mb-4">
+                    <label for="portfolio-desc-input" class="block text-gray-700 mb-2">描述</label>
+                    <textarea id="portfolio-desc-input" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="portfolio-image-input" class="block text-gray-700 mb-2">图片</label>
+                    <input type="file" id="portfolio-image-input" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div class="mb-4">
+                    <label for="portfolio-category-input" class="block text-gray-700 mb-2">分类</label>
+                    <select id="portfolio-category-input" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="web">网站开发</option>
+                        <option value="app">应用开发</option>
+                        <option value="design">UI/UX设计</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 mb-2">技术标签</label>
+                    <div class="flex flex-wrap gap-2 mb-2" id="portfolio-tags-container">
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center">
+                            React
+                            <button type="button" class="ml-1 text-blue-800 hover:text-blue-900">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </span>
+                    </div>
+                    <div class="flex">
+                        <input type="text" id="portfolio-tag-input" class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="添加标签">
+                        <button type="button" id="add-tag-btn" class="bg-primary text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition-all-300">
+                            添加
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" class="close-modal px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-all-300">
+                        取消
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-600 transition-all-300">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 后台管理模态框 -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content bg-white rounded-lg shadow-xl animate-slide-up max-w-6xl w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">后台管理</h3>
+                <button class="close-modal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <ul class="flex border-b">
+                    <li class="mr-2">
+                        <a href="#" class="admin-tab inline-block px-4 py-2 border-b-2 border-primary text-primary" data-tab="dashboard">仪表盘</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="admin-tab inline-block px-4 py-2 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300" data-tab="visits">访问统计</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="admin-tab inline-block px-4 py-2 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300" data-tab="settings">设置</a>
+                    </li>
+                </ul>
+            </div>
+            <div id="admin-content">
+                <!-- 仪表盘 -->
+                <div id="dashboard-tab" class="admin-tab-content">
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h4 class="text-lg font-bold text-gray-800 mb-4">总访问量</h4>
+                            <div class="flex items-end">
+                                <span class="text-4xl font-bold text-primary" id="total-visits">0</span>
+                                <span class="ml-2 text-green-500">
+                                    <i class="fa fa-arrow-up"></i> 12%
+                                </span>
+                            </div>
+                            <p class="text-gray-500 mt-2">较上月增长</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h4 class="text-lg font-bold text-gray-800 mb-4">今日访问量</h4>
+                            <div class="flex items-end">
+                                <span class="text-4xl font-bold text-primary" id="today-visits">0</span>
+                                <span class="ml-2 text-green-500">
+                                    <i class="fa fa-arrow-up"></i> 5%
+                                </span>
+                            </div>
+                            <p class="text-gray-500 mt-2">较昨日增长</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">最近7天访问趋势</h4>
+                        <div class="chart-container">
+                            <canvas id="visits-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">最近访问记录</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="px-4 py-2 text-left">时间</th>
+                                        <th class="px-4 py-2 text-left">IP地址</th>
+                                        <th class="px-4 py-2 text-left">位置</th>
+                                        <th class="px-4 py-2 text-left">停留时长</th>
+                                        <th class="px-4 py-2 text-left">页面</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-visits">
+                                    <!-- 最近访问记录将通过JavaScript动态填充 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 访问统计 -->
+                <div id="visits-tab" class="admin-tab-content hidden">
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h4 class="text-lg font-bold text-gray-800 mb-4">访问来源分布</h4>
+                            <div class="chart-container">
+                                <canvas id="sources-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h4 class="text-lg font-bold text-gray-800 mb-4">页面访问统计</h4>
+                            <div class="chart-container">
+                                <canvas id="pages-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">访问者地理位置分布</h4>
+                        <div class="chart-container">
+                            <canvas id="locations-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">访问设备分布</h4>
+                        <div class="chart-container">
+                            <canvas id="devices-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设置 -->
+                <div id="settings-tab" class="admin-tab-content hidden">
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">个人信息设置</h4>
+                        <form id="profile-settings-form">
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="mb-4">
+                                    <label for="settings-name" class="block text-gray-700 mb-2">姓名</label>
+                                    <input type="text" id="settings-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="张三">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="settings-email" class="block text-gray-700 mb-2">邮箱</label>
+                                    <input type="email" id="settings-email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="zhangsan@example.com">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="settings-phone" class="block text-gray-700 mb-2">电话</label>
+                                    <input type="text" id="settings-phone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="13800138000">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="settings-position" class="block text-gray-700 mb-2">职位</label>
+                                    <input type="text" id="settings-position" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="前端开发工程师">
+                                </div>
+                                <div class="mb-4 md:col-span-2">
+                                    <label for="settings-address" class="block text-gray-700 mb-2">地址</label>
+                                    <input type="text" id="settings-address" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="北京市朝阳区">
+                                </div>
+                                <div class="mb-4 md:col-span-2">
+                                    <label for="settings-bio" class="block text-gray-700 mb-2">个人简介</label>
+                                    <textarea id="settings-bio" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">我是一名前端开发工程师，热爱创造美观、实用的网站和应用。拥有多年的开发经验，擅长HTML、CSS、JavaScript等前端技术。</textarea>
+                                </div>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-600 transition-all-300">
+                                    保存设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">密码设置</h4>
+                        <form id="password-settings-form">
+                            <div class="mb-4">
+                                <label for="current-password" class="block text-gray-700 mb-2">当前密码</label>
+                                <input type="password" id="current-password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div class="mb-4">
+                                <label for="new-password" class="block text-gray-700 mb-2">新密码</label>
+                                <input type="password" id="new-password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div class="mb-4">
+                                <label for="confirm-password" class="block text-gray-700 mb-2">确认新密码</label>
+                                <input type="password" id="confirm-password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-600 transition-all-300">
+                                    修改密码
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">网站设置</h4>
+                        <form id="website-settings-form">
+                            <div class="mb-4">
+                                <label for="settings-site-title" class="block text-gray-700 mb-2">网站标题</label>
+                                <input type="text" id="settings-site-title" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" value="个人网站">
+                            </div>
+                            <div class="mb-4">
+                                <label for="settings-theme" class="block text-gray-700 mb-2">默认主题</label>
+                                <select id="settings-theme" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="light">浅色模式</option>
+                                    <option value="dark">深色模式</option>
+                                    <option value="auto">跟随系统</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="mr-2" checked>
+                                    <span class="text-gray-700">启用访问统计</span>
+                                </label>
+                            </div>
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="mr-2" checked>
+                                    <span class="text-gray-700">显示实时天气</span>
+                                </label>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-600 transition-all-300">
+                                    保存设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 全局变量
+        let isLoggedIn = false;
+        let isEditMode = false;
+        let currentProjectId = null;
+        let visitsChart = null;
+        let sourcesChart = null;
+        let pagesChart = null;
+        let locationsChart = null;
+        let devicesChart = null;
+
+        // 项目详情数据
+        const projectsData = [
+            {
+                id: 1,
+                title: "电商网站设计",
+                description: "现代化电商平台，支持商品展示、购物车、支付流程等功能。采用React框架开发，具有响应式设计，适配各种设备。",
+                features: [
+                    "商品展示与搜索",
+                    "购物车功能",
+                    "用户账户管理",
+                    "支付流程集成",
+                    "订单跟踪系统"
+                ],
+                technologies: ["React", "Redux", "Node.js", "MongoDB", "Express"],
+                image: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1845406941648781321~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=FoROs7oTEVx2bajK9b%2B4XNX8Cw8%3D"
+            },
+            {
+                id: 2,
+                title: "移动应用界面",
+                description: "简约现代的移动应用界面设计，注重用户体验和交互设计。采用Material Design设计语言，提供流畅的用户体验。",
+                features: [
+                    "直观的用户界面",
+                    "流畅的动画效果",
+                    "个性化主题设置",
+                    "离线数据支持",
+                    "社交功能集成"
+                ],
+                technologies: ["Figma", "Adobe XD", "Sketch", "Principle", "Protopie"],
+                image: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1934441828370743303~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=HlFZOLMXreSGMGmz2FMT78DET0s%3D"
+            },
+            {
+                id: 3,
+                title: "品牌视觉设计",
+                description: "企业品牌视觉识别系统设计，包括标志、色彩、排版等元素。为客户打造独特的品牌形象，提升品牌认知度。",
+                features: [
+                    "品牌标志设计",
+                    "色彩系统规划",
+                    "排版规范制定",
+                    "应用场景设计",
+                    "品牌手册制作"
+                ],
+                technologies: ["Adobe Illustrator", "Adobe Photoshop", "Adobe InDesign", "Sketch", "Affinity Designer"],
+                image: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1615221321937059851~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=xKwosgDB6LQfeu80b4NkMdAFm0o%3D"
+            },
+            {
+                id: 4,
+                title: "个人博客网站",
+                description: "响应式个人博客网站，支持文章发布、评论互动等功能。采用Vue.js框架开发，具有良好的性能和用户体验。",
+                features: [
+                    "文章发布与管理",
+                    "评论系统",
+                    "标签分类",
+                    "搜索功能",
+                    "响应式设计"
+                ],
+                technologies: ["Vue.js", "Vuex", "Express", "MySQL", "Markdown"],
+                image: "https://p3-doubao-search-sign.byteimg.com/labis/45ad0d580e7ab264541844217345e52d~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=FxN9yY88i2FWdQimPIxd6HLgoeI%3D"
+            },
+            {
+                id: 5,
+                title: "音乐播放器应用",
+                description: "功能丰富的音乐播放器应用，支持在线播放、歌单管理等功能。采用React Native开发，可在iOS和Android平台运行。",
+                features: [
+                    "在线音乐播放",
+                    "歌单创建与管理",
+                    "个性化推荐",
+                    "歌词显示",
+                    "音质调节"
+                ],
+                technologies: ["React Native", "Redux", "Firebase", "Audio API", "React Navigation"],
+                image: "https://p3-doubao-search-sign.byteimg.com/labis/f7d5fdc513c0e50cb0523dcc1be34851~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=hOV3b2hlJ9kAr5IiaLNjE%2BNGpmk%3D"
+            },
+            {
+                id: 6,
+                title: "数据可视化设计",
+                description: "复杂数据的可视化设计，包括图表、仪表盘等元素。帮助用户直观地理解和分析数据，发现数据中的规律和趋势。",
+                features: [
+                    "多种图表类型",
+                    "交互式数据探索",
+                    "实时数据更新",
+                    "自定义仪表盘",
+                    "数据导出功能"
+                ],
+                technologies: ["D3.js", "Chart.js", "ECharts", "SVG", "Canvas"],
+                image: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1815803570250448964~tplv-be4g95zd3a-image.jpeg?rk3s=542c0f93&x-expires=1780578044&x-signature=0ah6fpkxwgXJpG2kXMM9s6MX8AM%3D"
+            }
+        ];
+
+        // 访问统计数据
+        const visitsData = {
+            labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+            datasets: [{
+                label: '访问量',
+                data: [120, 190, 300, 500, 250, 300, 200],
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        const sourcesData = {
+            labels: ['直接访问', '搜索引擎', '社交媒体', '外部链接', '其他'],
+            datasets: [{
+                data: [35, 30, 15, 15, 5],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(139, 92, 246, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(107, 114, 128, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(139, 92, 246, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(107, 114, 128, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        const pagesData = {
+            labels: ['首页', '简历', '作品', '联系我', '博客'],
+            datasets: [{
+                label: '访问量',
+                data: [500, 300, 400, 200, 100],
+                backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                borderColor: 'rgba(16, 185, 129, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        const locationsData = {
+            labels: ['北京', '上海', '广州', '深圳', '其他'],
+            datasets: [{
+                data: [40, 25, 15, 10, 10],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(139, 92, 246, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(107, 114, 128, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(139, 92, 246, 1)',
+                    'rgba(245, 158, 11, 1)',
+                    'rgba(107, 114, 128, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        const devicesData = {
+            labels: ['桌面端', '移动端', '平板'],
+            datasets: [{
+                data: [50, 40, 10],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(139, 92, 246, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(139, 92, 246, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        // 最近访问记录
+        const recentVisits = [
+            { time: '2025-12-06 10:30:25', ip: '123.45.67.89', location: '北京', duration: '2分30秒', page: '首页' },
+            { time: '2025-12-06 10:25:12', ip: '98.76.54.32', location: '上海', duration: '5分12秒', page: '作品' },
+            { time: '2025-12-06 10:20:45', ip: '111.222.333.444', location: '广州', duration: '1分45秒', page: '简历' },
+            { time: '2025-12-06 10:15:30', ip: '555.666.777.888', location: '深圳', duration: '3分20秒', page: '联系我' },
+            { time: '2025-12-06 10:10:15', ip: '999.000.111.222', location: '杭州', duration: '4分10秒', page: '作品' }
+        ];
+
+        // DOM加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化
+            initModals();
+            initEventListeners();
+            initCharts();
+            updateTimeAndLocation();
+            loadVisitsData();
+            
+            // 每分钟更新一次时间
+            setInterval(updateTime, 60000);
+            
+            // 每30分钟更新一次天气
+            setInterval(updateWeather, 1800000);
+            
+            // 初始加载天气和位置信息
+            updateWeather();
+            updateLocation();
+        });
+
+        // 初始化模态框
+        function initModals() {
+            // 打开登录模态框
+            document.getElementById('login-btn').addEventListener('click', function() {
+                document.getElementById('login-modal').style.display = 'block';
+            });
+
+            // 打开项目详情模态框
+            document.querySelectorAll('.view-project-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const projectId = parseInt(this.getAttribute('data-id'));
+                    currentProjectId = projectId;
+                    showProjectDetails(projectId);
+                    document.getElementById('project-modal').style.display = 'block';
+                });
+            });
+
+            // 打开添加作品模态框
+            document.getElementById('add-portfolio-btn').addEventListener('click', function() {
+                document.getElementById('add-portfolio-modal').style.display = 'block';
+            });
+
+            // 关闭模态框
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.display = 'none';
+                    });
+                });
+            });
+
+            // 点击模态框外部关闭
+            window.addEventListener('click', function(event) {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 移动端菜单切换
+            document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+                const mobileMenu = document.getElementById('mobile-menu');
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // 密码显示/隐藏切换
+            document.querySelectorAll('.password-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const passwordInput = this.previousElementSibling;
+                    const icon = this.querySelector('i');
+                    
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
+            });
+
+            // 主题切换
+            document.getElementById('theme-toggle').addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                const icon = this.querySelector('i');
+                
+                if (document.body.classList.contains('dark-mode')) {
+                    icon.classList.remove('fa-moon-o');
+                    icon.classList.add('fa-sun-o');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    icon.classList.remove('fa-sun-o');
+                    icon.classList.add('fa-moon-o');
+                    localStorage.setItem('theme', 'light');
+                }
+                
+                // 更新图表主题
+                updateChartsTheme();
+            });
+
+            // 作品筛选
+            document.querySelectorAll('.portfolio-filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const filter = this.getAttribute('data-filter');
+                    
+                    // 更新按钮样式
+                    document.querySelectorAll('.portfolio-filter-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-200', 'text-gray-800');
+                    });
+                    this.classList.remove('bg-gray-200', 'text-gray-800');
+                    this.classList.add('bg-primary', 'text-white');
+                    
+                    // 筛选作品
+                    document.querySelectorAll('.portfolio-item').forEach(item => {
+                        if (filter === 'all' || item.getAttribute('data-category') === filter) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // 登录表单提交
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // 简单验证
+                if (username === 'admin' && password === 'admin123') {
+                    isLoggedIn = true;
+                    document.getElementById('login-modal').style.display = 'none';
+                    document.getElementById('login-btn').innerHTML = '<i class="fa fa-user mr-1"></i> 后台管理';
+                    document.getElementById('edit-mode-btn').classList.remove('hidden');
+                    
+                    // 显示后台管理
+                    document.getElementById('login-btn').addEventListener('click', function() {
+                        document.getElementById('admin-modal').style.display = 'block';
+                    }, { once: true });
+                    
+                    // 显示成功消息
+                    showNotification('登录成功！', 'success');
+                } else {
+                    showNotification('用户名或密码错误！', 'error');
+                }
+            });
+
+            // 编辑模式切换
+            document.getElementById('edit-mode-btn').addEventListener('click', function() {
+                isEditMode = !isEditMode;
+                
+                if (isEditMode) {
+                    this.innerHTML = '<i class="fa fa-check mr-2"></i> 保存编辑';
+                    enableEditMode();
+                } else {
+                    this.innerHTML = '<i class="fa fa-pencil mr-2"></i> 编辑模式';
+                    disableEditMode();
+                    saveContent();
+                }
+            });
+
+            // 添加标签按钮
+            document.getElementById('add-tag-btn').addEventListener('click', function() {
+                const tagInput = document.getElementById('portfolio-tag-input');
+                const tagText = tagInput.value.trim();
+                
+                if (tagText) {
+                    const tagsContainer = document.getElementById('portfolio-tags-container');
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center';
+                    tagElement.innerHTML = `
+                        ${tagText}
+                        <button type="button" class="ml-1 text-blue-800 hover:text-blue-900">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    `;
+                    
+                    // 删除标签
+                    tagElement.querySelector('button').addEventListener('click', function() {
+                        tagElement.remove();
+                    });
+                    
+                    tagsContainer.appendChild(tagElement);
+                    tagInput.value = '';
+                }
+            });
+
+            // 添加作品表单提交
+            document.getElementById('add-portfolio-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 模拟添加作品
+                document.getElementById('add-portfolio-modal').style.display = 'none';
+                showNotification('作品添加成功！', 'success');
+            });
+
+            // 联系表单提交
+            document.getElementById('contact-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 模拟表单提交
+                showNotification('消息已发送，我们会尽快回复您！', 'success');
+                this.reset();
+            });
+
+            // 后台管理标签切换
+            document.querySelectorAll('.admin-tab').forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // 更新标签样式
+                    document.querySelectorAll('.admin-tab').forEach(t => {
+                        t.classList.remove('border-primary', 'text-primary');
+                        t.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    });
+                    this.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    this.classList.add('border-primary', 'text-primary');
+                    
+                    // 显示对应内容
+                    document.querySelectorAll('.admin-tab-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+                });
+            });
+
+            // 设置表单提交
+            document.querySelectorAll('#profile-settings-form, #password-settings-form, #website-settings-form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    showNotification('设置已保存！', 'success');
+                });
+            });
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 访问趋势图表
+            const visitsCtx = document.getElementById('visits-chart').getContext('2d');
+            visitsChart = new Chart(visitsCtx, {
+                type: 'line',
+                data: visitsData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // 来源分布图表
+            const sourcesCtx = document.getElementById('sources-chart').getContext('2d');
+            sourcesChart = new Chart(sourcesCtx, {
+                type: 'pie',
+                data: sourcesData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 页面访问图表
+            const pagesCtx = document.getElementById('pages-chart').getContext('2d');
+            pagesChart = new Chart(pagesCtx, {
+                type: 'bar',
+                data: pagesData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // 地理位置图表
+            const locationsCtx = document.getElementById('locations-chart').getContext('2d');
+            locationsChart = new Chart(locationsCtx, {
+                type: 'doughnut',
+                data: locationsData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 设备分布图表
+            const devicesCtx = document.getElementById('devices-chart').getContext('2d');
+            devicesChart = new Chart(devicesCtx, {
+                type: 'pie',
+                data: devicesData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // 更新图表主题
+        function updateChartsTheme() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#F3F4F6' : '#1F2937';
+            
+            [visitsChart, pagesChart].forEach(chart => {
+                if (chart) {
+                    chart.options.scales.x.ticks.color = textColor;
+                    chart.options.scales.y.ticks.color = textColor;
+                    chart.update();
+                }
+            });
+            
+            [sourcesChart, locationsChart, devicesChart].forEach(chart => {
+                if (chart) {
+                    chart.options.plugins.legend.labels.color = textColor;
+                    chart.update();
+                }
+            });
+        }
+
+        // 显示项目详情
+        function showProjectDetails(projectId) {
+            const project = projectsData.find(p => p.id === projectId);
+            
+            if (project) {
+                document.getElementById('project-modal-title').textContent = project.title;
+                
+                let featuresList = '';
+                project.features.forEach(feature => {
+                    featuresList += `<li class="mb-2"><i class="fa fa-check-circle text-primary mr-2"></i>${feature}</li>`;
+                });
+                
+                let technologiesList = '';
+                project.technologies.forEach(tech => {
+                    technologiesList += `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2 mb-2 inline-block">${tech}</span>`;
+                });
+                
+                document.getElementById('project-modal-content').innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <img src="${project.image}" alt="${project.title}" class="w-full h-auto rounded-lg">
+                        </div>
+                        <div>
+                            <p class="text-gray-600 mb-6">${project.description}</p>
+                            <h4 class="text-lg font-bold text-gray-800 mb-3">主要功能</h4>
+                            <ul class="mb-6">
+                                ${featuresList}
+                            </ul>
+                            <h4 class="text-lg font-bold text-gray-800 mb-3">使用技术</h4>
+                            <div class="mb-6">
+                                ${technologiesList}
+                            </div>
+                            <div class="flex space-x-4">
+                                <a href="#" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all-300">
+                                    <i class="fa fa-external-link mr-1"></i> 查看演示
+                                </a>
+                                <a href="#" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-all-300">
+                                    <i class="fa fa-github mr-1"></i> 查看源码
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 启用编辑模式
+        function enableEditMode() {
+            document.querySelectorAll('.editable').forEach(element => {
+                element.contentEditable = true;
+                element.classList.add('border-b', 'border-dashed', 'border-primary');
+            });
+            
+            // 显示添加作品按钮
+            document.getElementById('add-portfolio-btn').classList.remove('hidden');
+            
+            // 显示成功消息
+            showNotification('已进入编辑模式！', 'success');
+        }
+
+        // 禁用编辑模式
+        function disableEditMode() {
+            document.querySelectorAll('.editable').forEach(element => {
+                element.contentEditable = false;
+                element.classList.remove('border-b', 'border-dashed', 'border-primary');
+            });
+            
+            // 隐藏添加作品按钮
+            document.getElementById('add-portfolio-btn').classList.add('hidden');
+        }
+
+        // 保存内容
+        function saveContent() {
+            // 模拟保存内容
+            showNotification('内容已保存！', 'success');
+        }
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-CN', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('current-time').textContent = timeString;
+        }
+
+        // 更新时间和位置
+        function updateTimeAndLocation() {
+            updateTime();
+            updateLocation();
+        }
+
+        // 更新位置信息
+        function updateLocation() {
+            // 使用ipapi.co API获取位置信息
+            fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(data => {
+                    const location = `${data.city}, ${data.country}`;
+                    document.getElementById('current-location').textContent = location;
+                    
+                    // 保存位置信息用于天气查询
+                    localStorage.setItem('userLocation', data.city);
+                })
+                .catch(error => {
+                    console.error('获取位置信息失败:', error);
+                    document.getElementById('current-location').textContent = '未知位置';
+                });
+        }
+
+        // 更新天气信息
+        function updateWeather() {
+            const location = localStorage.getItem('userLocation') || '北京';
+            const apiKey = 'YOUR_OPENWEATHERMAP_API_KEY'; // 替换为你的API密钥
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=metric&lang=zh_cn`;
+            
+            // 使用OpenWeatherMap API获取天气信息
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const weatherText = `${data.weather[0].description} ${data.main.temp}°C`;
+                    document.getElementById('weather-text').textContent = weatherText;
+                    
+                    // 更新天气图标
+                    const weatherIcon = document.getElementById('weather-btn').querySelector('i');
+                    weatherIcon.className = '';
+                    
+                    switch (data.weather[0].main) {
+                        case 'Clear':
+                            weatherIcon.className = 'fa fa-sun-o mr-1';
+                            break;
+                        case 'Clouds':
+                            weatherIcon.className = 'fa fa-cloud mr-1';
+                            break;
+                        case 'Rain':
+                            weatherIcon.className = 'fa fa-tint mr-1';
+                            break;
+                        case 'Snow':
+                            weatherIcon.className = 'fa fa-snowflake-o mr-1';
+                            break;
+                        case 'Thunderstorm':
+                            weatherIcon.className = 'fa fa-bolt mr-1';
+                            break;
+                        default:
+                            weatherIcon.className = 'fa fa-cloud mr-1';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取天气信息失败:', error);
+                    document.getElementById('weather-text').textContent = '无法获取天气';
+                });
+        }
+
+        // 加载访问统计数据
+        function loadVisitsData() {
+            // 更新总访问量和今日访问量
+            document.getElementById('total-visits').textContent = '12,458';
+            document.getElementById('today-visits').textContent = '156';
+            
+            // 更新最近访问记录
+            const recentVisitsHTML = recentVisits.map(visit => `
+                <tr>
+                    <td class="px-4 py-2 border">${visit.time}</td>
+                    <td class="px-4 py-2 border">${visit.ip}</td>
+                    <td class="px-4 py-2 border">${visit.location}</td>
+                    <td class="px-4 py-2 border">${visit.duration}</td>
+                    <td class="px-4 py-2 border">${visit.page}</td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('recent-visits').innerHTML = recentVisitsHTML;
+        }
+
+        // 显示通知
+        function showNotification(message, type) {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all-300 transform translate-x-full`;
+            
+            // 设置通知类型样式
+            if (type === 'success') {
+                notification.classList.add('bg-green-500', 'text-white');
+                notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-500', 'text-white');
+                notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+            } else if (type === 'warning') {
+                notification.classList.add('bg-yellow-500', 'text-white');
+                notification.innerHTML = `<i class="fa fa-exclamation-triangle mr-2"></i>${message}`;
+            } else {
+                notification.classList.add('bg-blue-500', 'text-white');
+                notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+            }
+            
+            // 添加到页面
+            document.body.appendChild(notification);
+            
+            // 显示通知
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // 自动关闭通知
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 页面滚动平滑效果
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // 关闭移动端菜单
+                    document.getElementById('mobile-menu').classList.add('hidden');
+                }
+            });
+        });
+
+        // 记录访问信息
+        function recordVisit() {
+            const page = window.location.pathname;
+            const timestamp = new Date().toISOString();
+            
+            // 获取或创建访问记录
+            let visits = JSON.parse(localStorage.getItem('visits')) || [];
+            
+            // 添加新的访问记录
+            visits.push({
+                page: page,
+                timestamp: timestamp,
+                duration: 0, // 将在离开页面时更新
+                ip: '', // 将通过API获取
+                location: '' // 将通过API获取
+            });
+            
+            // 保存访问记录
+            localStorage.setItem('visits', JSON.stringify(visits));
+            
+            // 更新访问统计
+            updateVisitsCount();
+        }
+
+        // 更新访问统计
+        function updateVisitsCount() {
+            const visits = JSON.parse(localStorage.getItem('visits')) || [];
+            const today = new Date().toDateString();
+            
+            // 计算总访问量
+            const totalVisits = visits.length;
+            
+            // 计算今日访问量
+            const todayVisits = visits.filter(visit => {
+                return new Date(visit.timestamp).toDateString() === today;
+            }).length;
+            
+            // 更新显示
+            if (document.getElementById('total-visits')) {
+                document.getElementById('total-visits').textContent = totalVisits;
+            }
+            
+            if (document.getElementById('today-visits')) {
+                document.getElementById('today-visits').textContent = todayVisits;
+            }
+        }
+
+        // 页面加载时记录访问
+        window.addEventListener('load', recordVisit);
+
+        // 页面离开时更新访问时长
+        window.addEventListener('beforeunload', function() {
+            const visits = JSON.parse(localStorage.getItem('visits')) || [];
+            
+            if (visits.length > 0) {
+                const lastVisit = visits[visits.length - 1];
+                const startTime = new Date(lastVisit.timestamp);
+                const endTime = new Date();
+                const duration = Math.floor((endTime - startTime) / 1000); // 秒
+                
+                // 更新访问时长
+                lastVisit.duration = duration;
+                localStorage.setItem('visits', JSON.stringify(visits));
+            }
+        });
+
+        // 初始化主题
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                const icon = document.getElementById('theme-toggle').querySelector('i');
+                icon.classList.remove('fa-moon-o');
+                icon.classList.add('fa-sun-o');
+            }
+        }
+
+        // 初始化主题
+        initTheme();
+    </script>
+</body>
+</html>
